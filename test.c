@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,7 +5,7 @@
 // Node element for linked list
 typedef struct Node
 {
-    int item;
+    void *item;
     struct Node *next;
     struct Node *prev;
 } NODE;
@@ -14,7 +13,7 @@ typedef struct Node
 // List abstract data structure
 typedef struct List
 {
-    int count;
+    int size;
     NODE *head;
     NODE *tail;
     struct Current
@@ -35,214 +34,275 @@ NODE heads_array[MAX_LENGTH];
 static NODE *freeListNode;
 static NODE *freeListHead;
 
-int main()
+// Init memory cache array
+void init()
 {
-    // ------------------------Main Init------------------------------------
-    int a = 1;
-    int b = 1;
-    LIST test;
-
     // Array init
     nodes_array[MAX_LENGTH - 1].next = NULL;
     heads_array[MAX_LENGTH - 1].next = NULL;
     nodes_array[0].prev = NULL;
     heads_array[0].prev = NULL;
 
-    for (int i = 0; i < MAX_LENGTH - 2; i++)
+    for (int i = 0; i < MAX_LENGTH - 1; i++)
     {
         nodes_array[i].next = &nodes_array[i + 1];
         heads_array[i].next = &heads_array[i + 1];
-        nodes_array[i + 1].prev = &nodes_array[i];
-        heads_array[i + 1].prev = &heads_array[i];
+        nodes_array[i + 1].prev = NULL;
+        heads_array[i + 1].prev = NULL;
     }
 
     freeListNode = &nodes_array[0];
     freeListHead = &heads_array[0];
-    // --------------------End of Main init -----------------------------------
+}
 
-    // --------------------------------Helper Functions ----------------------------
-    // Find new head
+// Find new list head
+NODE *FindNewListHead()
+{
     NODE *newListHead = freeListHead;
+    newListHead = NULL;
     freeListHead = freeListHead->next;
-    freeListHead->item = 2;
+    return newListHead;
+}
 
-    // Find new Node
+// Find new list Node
+NODE *FindNewListNode()
+{
     NODE *newListNode = freeListNode;
     freeListNode = freeListNode->next;
-    freeListHead->item = 2;
+    return newListNode;
+}
 
-    // ---------------------------End of Helper functions --------------------------
+void FreeNodeFromList(NODE *nodeElement)
+{
+    nodeElement->item = NULL;
+    nodeElement->prev = NULL;
+    nodeElement->next = freeListNode;
+    freeListNode = nodeElement;
+}
 
-    // --------------------------------Main functions------------------------------
-    // New list init
-    test.count = 0;
-    test.head = newListHead;
-    test.head->item = 0;
-    test.head->next = newListNode;
-    test.head->prev = NULL;
-    test.tail = test.head;
-    test.current.pointer = test.head;
+void FreeHeadFromList(NODE *headElement)
+{
+    headElement->item = NULL;
+    headElement > prev = NULL;
+    headElement->next = freeListNode;
+    freeListNode = headElement;
+}
 
-    if (test.current.pointer != NULL)
+_Bool isValid(LIST *list)
+{
+    return ((list->current.isBeforeFirstItem) || (list->current.isBeyondLastItem) || (list->size == 0)) ? 0 : 1;
+}
+
+void checkCurrentItemStatus(LIST *list)
+{
+    if (.current.pointer != NULL)
     {
-        test.current.isValid = 1;
-        test.current.isBeforeFirstItem = 0;
-        test.current.isBeyondLastItem = 0;
+        list->current.isValid = 1;
+        list->current.isBeforeFirstItem = 0;
+        list->current.isBeyondLastItem = 0;
     }
     else if (test.current.pointer->next == test.head)
     {
-        test.current.isValid = 0;
-        test.current.isBeforeFirstItem = 1;
-        test.current.isBeyondLastItem = 0;
+        list->current.isValid = 0;
+        list->current.isBeforeFirstItem = 1;
+        list->current.isBeyondLastItem = 0;
     }
     else if (test.current.pointer->prev == test.tail)
     {
-        test.current.isValid = 0;
-        test.current.isBeforeFirstItem = 0;
-        test.current.isBeyondLastItem = 1;
+        list->current.isValid = 0;
+        list->current.isBeforeFirstItem = 0;
+        list->current.isBeyondLastItem = 1;
     }
-    //---------------------------------End of functions-----------------------------
+}
 
-    // Test driver
-    printf("List count: %d\n", test.count);
-    printf("Head address: %p\n", test.head);
-    printf("Head item: %d\n", test.head->item);
-    printf("Head next: %p\n", test.head->next);
-    printf("Head prev: %p\n", test.head->prev);
-    printf("Tail address: %p\n", test.tail);
-    printf("Tail item: %d\n", test.tail->item);
-    printf("Tail next: %p\n", test.tail->next);
-    printf("Tail prev: %p\n", test.tail->prev);
-    printf("Current pointer address: %p\n", test.current.pointer);
-    printf("Current is valid: %d\n", test.current.isValid);
-    printf("Current is is before: %d\n", test.current.isBeforeFirstItem);
-    printf("Current is beyond: %d\n", test.current.isBeyondLastItem);
-    printf("Current item: %d\n", test.current.pointer->item);
-    printf("Current next: %p\n", test.current.pointer->next);
-    printf("Current prev: %p\n", test.current.pointer->prev);
+// List create
+LIST *ListCreate()
+{
+    LIST newList;
+    newList.count = 0;
+    newList.head = FindNewListHead();
+    newList.head = NULL;
+    newList.tail = newList.head;
+    newList.current.pointer = newList.head;
+    newList.current.isValid = 0;
+    newList.current.isBeforeFirstItem = 0;
+    newList.current.isBeyondLastItem = 0;
+
+    LIST *listReference = &newList;
+
+    return listReference;
+}
+
+// List count
+int ListCount(LIST *list)
+{
+    if (list == NULL)
+        return NULL;
+    return list->size;
+}
+
+// List first
+void *ListFirst(LIST *list)
+{
+    // set pointer = head
+    // return head pointer
+    if ((list == NULL) || (list->== 0))
+        return NULL;
+
+    list->current.pointer list->head;
+
+    return list->head->data
+}
+
+void *listLast(list)
+{
+    // set pointer = tail
+    // return tail pointer
+    if ((list == NULL) || (list->== 0))
+        return NULL;
+
+    list->current.pointer list->tail;
+
+    return list->tail->data
+}
+
+void *listNext(list)
+{
+    // if (isValid)
+    // {set current = current->next}
+    // return current pointer
+    if ((list == NULL) || (list->== 0))
+        return NULL;
+
+    list->current.pointer = list->current.pointer->next;
+}
+
+void *listPrev(list)
+{
+    // if (isValid)
+    // {set current = current->prev}
+    // return current pointer
+}
+
+// List add
+int ListAdd(list, item)
+{
+    // if (isValid)
+    // {add item after the current item in the list}
+    // return 0 for success and -1 for failure (out of memory)
+
     return 0;
-=======
-#include <stdio.h>
-#include <stdlib.h>
+}
 
-#define MAX_LENGTH 10
-// Node element for linked list
-typedef struct Node
+// List insert
+int ListInsert(list, item)
 {
-    int item;
-    struct Node *next;
-    struct Node *prev;
-} NODE;
+    // if (current item is before first item)
+    // {add item before head and make head = new item}
+    // else if (current item is beyond last item)
+    // {add after tail and make tail = new item}
+    // else
+    // {add item before the current item in the list}
+    // return 0 for success and -1 for failure (out of memory)
 
-// List abstract data structure
-typedef struct List
+    return 0;
+}
+
+//List Append
+int ListAppend(list, item)
 {
-    int count;
-    NODE *head;
-    NODE *tail;
-    struct Current
-    {
-        NODE *pointer;
-        _Bool isValid;
-        _Bool isBeforeFirstItem;
-        _Bool isBeyondLastItem;
-    } current;
+    // add item before head
+    // current pointer = new item
+    // make head = new item
+    // return 0 for success and -1 for failure
+}
 
-} LIST;
+// List Prepend
+int ListPrepend(list, item)
+{
+    // add item before head
+    // current pointer = new item
+    // make head = new item
+    // return 0 for success and -1 for failure
+}
 
-// Global arrays that store nodes and heads
-NODE nodes_array[MAX_LENGTH];
-NODE heads_array[MAX_LENGTH];
+// List trim
+void *ListTrim(list)
+{
+    // set temp = tail
+    // set tail  = tail->prev
+    // tail->next = NULL
+    // temp2 = temp
+    // freeNode(temp)
+    // set current = tail
+    // size--
+    // return temp2
+}
 
-// First free node or free head in the arrays
-static NODE *freeListNode;
-static NODE *freeListHead;
+// List remove
+void *ListRemove(list)
+{
+    // -> move to the next current pointer
+    // set temp = current
+    // set current = current->next
+    // -> link new item with the old one
+    // set temp->prev->next = current
+    // set current->prev = temp->prev
+    // set temp2 = temp
+    // -> turn into free node
+    // freeNodeFromList(temp);
+    // size--
+    // return temp2;
+}
 
+// List free
+void ListFree(list, itemFree)
+{
+    // set current = tail
+    // while (current != head)
+    // {Trim list}
+    // freeHeadFromList(head);
+    // list = NULL
+}
+
+void ListConcat(list1, list2)
+{
+    // list1->tail->next = list2->head
+    // list2->head->prev = list1->tail
+    // list1->tail = list2->tail
+    // list1->size += list2->size
+    // ListFree(list2)
+}
+
+void *ListSearch(list, comparator, comparisionArg)
+{
+    // if (list == NULL) or (size = 0) or (comparator = 0) or (comparisionArg = NULL) or (!isValid(current))
+    // {return NULL}
+    // while (comparator(comparisionArg, current)) and current != tail
+    // if (current->prev == tail)
+    // {break
+    // set current = current->next}
+    // checkCurrentItemStatus(list)
+    // return current
+}
+
+void print(int x)
+{
+    printf("%d\n", x);
+}
+
+void ad(int a, void (*itemFree)(int item))
+{
+    (*itemFree)(a);
+}
 int main()
 {
-    // ------------------------Main Init------------------------------------
-    int a = 1;
-    int b = 1;
-    LIST test;
-
-    // Array init
-    nodes_array[MAX_LENGTH - 1].next = NULL;
-    heads_array[MAX_LENGTH - 1].next = NULL;
-    nodes_array[0].prev = NULL;
-    heads_array[0].prev = NULL;
-
-    for (int i = 0; i < MAX_LENGTH - 2; i++)
-    {
-        nodes_array[i].next = &nodes_array[i + 1];
-        heads_array[i].next = &heads_array[i + 1];
-        nodes_array[i + 1].prev = &nodes_array[i];
-        heads_array[i + 1].prev = &heads_array[i];
-    }
-
-    freeListNode = &nodes_array[0];
-    freeListHead = &heads_array[0];
-    // --------------------End of Main init -----------------------------------
-
-    // --------------------------------Helper Functions ----------------------------
-    // Find new head
-    NODE *newListHead = freeListHead;
-    freeListHead = freeListHead->next;
-    freeListHead->item = 2;
-
-    // Find new Node
-    NODE *newListNode = freeListNode;
-    freeListNode = freeListNode->next;
-    freeListHead->item = 2;
-
-    // ---------------------------End of Helper functions --------------------------
-
-    // --------------------------------Main functions------------------------------
-    // New list init
-    test.count = 0;
-    test.head = newListHead;
-    test.head->item = 0;
-    test.head->next = newListNode;
-    test.head->prev = NULL;
-    test.tail = test.head;
-    test.current.pointer = test.head;
-
-    if (test.current.pointer != NULL)
-    {
-        test.current.isValid = 1;
-        test.current.isBeforeFirstItem = 0;
-        test.current.isBeyondLastItem = 0;
-    }
-    else if (test.current.pointer->next == test.head)
-    {
-        test.current.isValid = 0;
-        test.current.isBeforeFirstItem = 1;
-        test.current.isBeyondLastItem = 0;
-    }
-    else if (test.current.pointer->prev == test.tail)
-    {
-        test.current.isValid = 0;
-        test.current.isBeforeFirstItem = 0;
-        test.current.isBeyondLastItem = 1;
-    }
-    //---------------------------------End of functions-----------------------------
-
+    init();
+    LIST *test = ListCreate();
+    int b = 5;
     // Test driver
-    printf("List count: %d\n", test.count);
-    printf("Head address: %p\n", test.head);
-    printf("Head item: %d\n", test.head->item);
-    printf("Head next: %p\n", test.head->next);
-    printf("Head prev: %p\n", test.head->prev);
-    printf("Tail address: %p\n", test.tail);
-    printf("Tail item: %d\n", test.tail->item);
-    printf("Tail next: %p\n", test.tail->next);
-    printf("Tail prev: %p\n", test.tail->prev);
-    printf("Current pointer address: %p\n", test.current.pointer);
-    printf("Current is valid: %d\n", test.current.isValid);
-    printf("Current is is before: %d\n", test.current.isBeforeFirstItem);
-    printf("Current is beyond: %d\n", test.current.isBeyondLastItem);
-    printf("Current item: %d\n", test.current.pointer->item);
-    printf("Current next: %p\n", test.current.pointer->next);
-    printf("Current prev: %p\n", test.current.pointer->prev);
+    ad(b, print);
+    printf("List count: %d\n", ListCount(test));
+
     return 0;
->>>>>>> Add: Init files
 }
