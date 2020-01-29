@@ -151,37 +151,54 @@ void *ListFirst(LIST *list)
 
     list->current.pointer list->head;
 
-    return list->head->data
+    return list->head->item
 }
 
-void *listLast(list)
+void *listLast(LIST *list)
 {
     // set pointer = tail
     // return tail pointer
-    if ((list == NULL) || (list->== 0))
+    if ((list == NULL) || (list->size == 0))
         return NULL;
 
     list->current.pointer list->tail;
 
-    return list->tail->data
+    return list->tail->item
 }
 
-void *listNext(list)
+void *listNext(LIST *list)
 {
     // if (isValid)
     // {set current = current->next}
     // return current pointer
-    if ((list == NULL) || (list->== 0))
+    if ((list == NULL) || (list->current.pointer == NULL) || (list->current.pointer->next == NULL))
         return NULL;
 
     list->current.pointer = list->current.pointer->next;
+    checkCurrentItemStatus();
+    return list->current.pointer;
 }
 
-void *listPrev(list)
+void *listPrev(LIST *list)
 {
     // if (isValid)
     // {set current = current->prev}
     // return current pointer
+    if ((list == NULL) || (list->current.pointer == NULL) || (list->current.pointer->prev == NULL))
+        return NULL;
+
+    list->current.pointer = list->current.pointer->next;
+    list->current.pointer = list->current.pointer->next;
+    checkCurrentItemStatus();
+    return list->current.pointer->item;
+}
+
+void *ListCurr(LIST *list)
+{
+    if ((list == NULL) || (list->current.pointer == NULL) || (!isValid(list)))
+        list->current.pointer->item;
+
+    return list->current.pointer->item
 }
 
 // List add
@@ -190,7 +207,9 @@ int ListAdd(list, item)
     // if (isValid)
     // {add item after the current item in the list}
     // return 0 for success and -1 for failure (out of memory)
-
+    if ((isValid(list) ) {
+        
+    } 
     return 0;
 }
 
