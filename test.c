@@ -34,6 +34,7 @@ NODE heads_array[MAX_LENGTH];
 static NODE *freeListNode;
 static NODE *freeListHead;
 
+// ---------------------------------------Memory Allocation--------------------------------//
 // Init memory cache array
 void init()
 {
@@ -56,23 +57,37 @@ void init()
 }
 
 // Find new list head
-NODE *FindNewListHead()
+NODE *findNewListHead()
 {
     NODE *newListHead = freeListHead;
-    newListHead = NULL;
-    freeListHead = freeListHead->next;
+    if (freeListHead == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        freeListHead = freeListHead->next;
+    }
     return newListHead;
 }
 
 // Find new list Node
-NODE *FindNewListNode()
+NODE *findNewListNode()
 {
     NODE *newListNode = freeListNode;
-    freeListNode = freeListNode->next;
+    if (freeListNode == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        freeListNode = freeListNode->next;
+    }
+
     return newListNode;
 }
 
-void FreeNodeFromList(NODE *nodeElement)
+void freeNodeFromList(NODE *nodeElement)
 {
     nodeElement->item = NULL;
     nodeElement->prev = NULL;
@@ -80,46 +95,84 @@ void FreeNodeFromList(NODE *nodeElement)
     freeListNode = nodeElement;
 }
 
-void FreeHeadFromList(NODE *headElement)
+void freeHeadFromList(NODE *headElement)
 {
     headElement->item = NULL;
-    headElement > prev = NULL;
-    headElement->next = freeListNode;
-    freeListNode = headElement;
+    headElement->prev = NULL;
+    headElement->next = freeListHead;
+    freeListHead = headElement;
 }
+//------------------------------End of Memory Allocation-------------------------//
+
+// ------------------------------Current Pointer---------------------------------//
 
 _Bool isValid(LIST *list)
 {
-    return ((list->current.isBeforeFirstItem) || (list->current.isBeyondLastItem) || (list->size == 0)) ? 0 : 1;
+    return ((list->current.isBeforeFirstItem == 1) || (list->current.isBeyondLastItem) == 1 || (list->size == 0)) ? 0 : 1;
 }
 
-void checkCurrentItemStatus(LIST *list)
+_Bool isBeforeFirstItem(LIST *list)
+{
+    return ((list->current.isValid == 1) || (list->current.isBeyondLastItem == 1) || (list->size == 0)) ? 0 : 1;
+}
+
+_Bool isBeyondLastItem(LIST *list)
+{
+    return ((list->current.isBeforeFirstItem == 1) || (list->current.isValid == 1) || (list->size == 0)) ? 0 : 1;
+}
+
+void setCurrentItemNull(LIST *list)
+{
+    list->current.isValid = 0;
+    list->current.isBeforeFirstItem = 0;
+    list->current.isBeyondLastItem = 0;
+}
+
+void setCurrentItemValid(LIST *list)
+{
+    list->current.isValid = 1;
+    list->current.isBeforeFirstItem = 0;
+    list->current.isBeyondLastItem = 0;
+}
+
+void setCurrentItemBeforeHead(LIST *list)
+{
+    list->current.isValid = 0;
+    list->current.isBeforeFirstItem = 1;
+    list->current.isBeyondLastItem = 0;
+}
+
+void setCurrentItemBeyondTail(LIST *list)
+{
+    list->current.isValid = 0;
+    list->current.isBeforeFirstItem = 0;
+    list->current.isBeyondLastItem = 1;
+}
+
+void updateCurrentItemStatus(LIST *list)
 {
     if (.current.pointer != NULL)
     {
-        list->current.isValid = 1;
-        list->current.isBeforeFirstItem = 0;
-        list->current.isBeyondLastItem = 0;
+        setCurrentItemValid();
     }
-    else if (test.current.pointer->next == test.head)
+    else if (list.current.pointer->next == test.head)
     {
-        list->current.isValid = 0;
-        list->current.isBeforeFirstItem = 1;
-        list->current.isBeyondLastItem = 0;
+        setCurrentItemBeforeHead();
     }
-    else if (test.current.pointer->prev == test.tail)
+    else if (list.current.pointer->prev == test.tail)
     {
-        list->current.isValid = 0;
-        list->current.isBeforeFirstItem = 0;
-        list->current.isBeyondLastItem = 1;
+        setCurrentItemBeyondTail();
     }
 }
 
+// ----------------------------End of Current Pointer---------------------//
+
+// -------------------------Functionality--------------------------------//
 // List create
 LIST *ListCreate()
 {
     LIST newList;
-    NODE *newListHead = FindNewListHead();
+    NODE *newListHead = findNewListHead();
 
     if (newListHead == NULL)
     {
@@ -127,9 +180,8 @@ LIST *ListCreate()
     }
     else
     {
-        newList.count = 0;
+        newList.size = 0;
         newList.head = newListHead;
-        newList.head = NULL;
         newList.tail = newList.head;
         newList.current.pointer = newList.head;
         newList.current.isValid = 0;
@@ -145,170 +197,277 @@ LIST *ListCreate()
 // List count
 int ListCount(LIST *list)
 {
-    if (list == NULL)
-        return NULL;
     return list->size;
 }
 
 // List first
 void *ListFirst(LIST *list)
 {
-    // set pointer = head
-    // return head pointer
-    if ((list == NULL) || (list->size == 0))
+    if (list->size == 0)
         return NULL;
 
-    list->current.pointer list->head;
+    list->current.pointer = list->head;
+    setCurrentItemValid(list);
 
     return list->head->item;
 }
 
 void *ListLast(LIST *list)
 {
-    // set pointer = tail
-    // return tail pointer
-    if ((list == NULL) || (list->size == 0))
+    if (list->size == 0)
         return NULL;
 
-    list->current.pointer list->tail;
+    list->current.pointer = list->tail;
+    setCurrentItemValid(list);
 
     return list->tail->item;
 }
 
 void *ListNext(LIST *list)
 {
-    // if (isValid)
-    // {set current = current->next}
-    // return current pointer
-    if ((list == NULL) || (list->current.pointer == NULL) || (list->current.pointer->next == NULL))
+    if ((list->size == 0) || (list->current.pointer == NULL) || (list->current.pointer->next == NULL))
         return NULL;
 
     list->current.pointer = list->current.pointer->next;
-    checkCurrentItemStatus();
-    return list->current.pointer;
+    updateCurrentItemStatus(list);
+    return list->current.pointer->item;
 }
 
-void *listPrev(LIST *list)
+void *ListPrev(LIST *list)
 {
-    // if (isValid)
-    // {set current = current->prev}
-    // return current pointer
-    if ((list == NULL) || (list->current.pointer == NULL) || (list->current.pointer->prev == NULL))
+    if ((list->size == 0) || (list->current.pointer == NULL) || (list->current.pointer->prev == NULL))
         return NULL;
 
-    list->current.pointer = list->current.pointer->next;
-    checkCurrentItemStatus();
+    list->current.pointer = list->current.pointer->prev;
+    updateCurrentItemStatus(list);
     return list->current.pointer->item;
 }
 
 void *ListCurr(LIST *list)
 {
-    if ((list == NULL) || (list->current.pointer == NULL) || (!isValid(list)))
-        list->current.pointer->item;
+    if ((list->size == 0) || (list->current.pointer == NULL) || (isValid(list) == 0))
+        return NULL;
 
-    return list->current.pointer->item
+    return list->current.pointer->item;
 }
 
 // List add
-int ListAdd(LIST *list, void *item)
+int ListAdd(LIST *list, void *value)
 {
-    // if (isValid)
-    // {add item after the current item in the list}
-    // return 0 for success and -1 for failure (out of memory)
-    NODE *newListNode = FindNewListNode(list);
-    NODE *temp;
-    if ((!isValid(list) || (list == NULL) || (newListNode == NULL)) 
-        return -1; 
-    
+    if (newListNode == NULL)
+    {
+        return -1;
+    }
+
     if (list->size == 0)
     {
-        list->head = newListNode;
+        list->head->next = NULL;
+        list->head->prev = NULL;
+        list->head->item = value;
         list->tail = list->head;
-    } else {
-        temp = newListNode;
-        temp->next = list->head;
-        list->head->prev = temp;
-        list->head = temp;
-    } 
-
-    list->count++;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if (list->size == 1)
+    {
+        NODE *newListNode = findNewListNode(list);
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->tail = newListNode;
+        list->current.pointer = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if ((isBeforeFirstItem(list) == 1) || (list->current.pointer == list->head))
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->item = value;
+        newListNode->next = list->head->next;
+        list->head->next->prev = newListNode;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->head->item = value;
+        list->current.pointer = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if ((isBeyondLastItem(list) == 1) || (list->current.pointer == list->tail))
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->item = value;
+        newListNode->next = NULL;
+        newListNode->prev = list->tail;
+        list->tail->next = newListNode;
+        list->tail = newListNode;
+        list->current.pointer = list->tail;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if (isValid(list) == 1)
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->item = value;
+        newListNode->next = list->current.pointer->next;
+        list->current.pointer->next->prev = newListNode;
+        list->current.pointer->next = newListNode;
+        newListNode->prev = list->current.pointer;
+        list->current.pointer = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+    }
 
     return 0;
 }
 
 // List insert
-int ListInsert(LIST *list, item)
+int ListInsert(LIST *list, void *value)
 {
-    // if (current item is before first item)
-    // {add item before head and make head = new item}
-    // else if (current item is beyond last item)
-    // {add after tail and make tail = new item}
-    // else
-    // {add item before the current item in the list}
-    // return 0 for success and -1 for failure (out of memory)
+    if (newListNode == NULL)
+    {
+        return -1;
+    }
+
+    if (list->size == 0)
+    {
+        list->head->next = NULL;
+        list->head->prev = NULL;
+        list->head->item = value;
+        list->tail = list->head;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if (list->size == 1)
+    {
+        NODE *newListNode = findNewListNode(list);
+        list->head->next = newListNode;
+        newListNode->item = list->head->item;
+        list->head->item = value;
+        list->tail = newListNode;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if ((isBeforeFirstItem(list) == 1) || (list->current.pointer == list->head))
+    {
+        NODE *newListNode = findNewListNode(list);
+        list->head->prev = NULL;
+        newListNode->next = list->head->next;
+        list->head->next->prev = newListNode;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        newListNode->item = list->head->item;
+        list->head->item = value;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if ((isBeyondLastItem(list) == 1) || (list->current.pointer == list->tail))
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->item = value;
+        list->tail->prev->next = newListNode;
+        newListNode->prev = list->tail->prev;
+        newListNode->next = list->tail;
+        list->tail->prev = newListNode;
+        list->current.pointer = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else if (isValid(list) == 1)
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->item = value;
+        list->current.pointer->prev->next = newListNode;
+        newListNode->prev = list->current.pointer->prev;
+        newListNode->next = list->current.pointer;
+        list->current.pointer->prev = newListNode;
+        list->current.pointer = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+    }
 
     return 0;
 }
 
 //List Append
-int ListAppend(LIST *list, void *item)
+int ListAppend(LIST *list, void *value)
 {
-    // add item after tail
-    // current pointer = new item
-    // make head = new item
-    // return 0 for success and -1 for failure
-    // if (isValid)
-    // {add item after the current item in the list}
-    // return 0 for success and -1 for failure (out of memory)
-    NODE *newListNode = FindNewListNode(list);
-    NODE *temp;
-    if ((!isValid(list) || (list == NULL) || (newListNode == NULL)) 
-        return -1; 
-    
+    if ((isValid(list) == 0) || (newListNode == NULL))
+    {
+        return -1;
+    }
+
     if (list->size == 0)
     {
-        list->head->item = item;
-        list->head = newListNode;
+        list->head->next = NULL;
+        list->head->prev = NULL;
+        list->head->item = value;
         list->tail = list->head;
-    } else {
-        temp = newListNode;
-        temp->next = list->head;
-        list->head->prev = temp;
-        list->head = temp;
-    } 
-
-    list->size++;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+    }
+    else
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->next = NULL;
+        list->tail->next = newListNode;
+        newListNode->prev = list->tail;
+        newListNode->item = value;
+        list->tail = newListNode;
+        list->current.pointer = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+    }
 
     return 0;
 }
 
 // List Prepend
-int ListPrepend(list, item)
+int ListPrepend(LIST *list, void *value)
 {
-    // add item before head
-    // current pointer = new item
-    // make head = new item
-    // return 0 for success and -1 for failure
-    // if (isValid)
-    // {add item after the current item in the list}
-    // return 0 for success and -1 for failure (out of memory)
-    NODE *newListNode = FindNewListNode(list);
-    NODE *temp;
-    if ((!isValid(list) || (list == NULL) || (newListNode == NULL)) 
-        return -1; 
-    
+    if ((isValid(list) == 0) || (newListNode == NULL))
+    {
+        return -1;
+    }
+
     if (list->size == 0)
     {
-        list->head = newListNode;
+        list->head->next = NULL;
+        list->head->prev = NULL;
+        list->head->item = value;
         list->tail = list->head;
-    } else {
-        temp = newListNode;
-        temp->next = list->head;
-        list->head->prev = temp;
-        list->head = temp;
-    } 
-
-    list->size++;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+    }
+    else if (list->size == 1)
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->next = list->head->next;
+        list->head->next->prev = newListNode;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        newListNode->item = list->head->item;
+        list->head->item = value;
+        list->tail = newListNode;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+    }
+    else
+    {
+        NODE *newListNode = findNewListNode(list);
+        newListNode->next = list->head->next;
+        list->head->next->prev = newListNode;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        newListNode->item = list->head->item;
+        list->head->item = value;
+        list->current.pointer = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+    }
 
     return 0;
 }
@@ -316,62 +475,192 @@ int ListPrepend(list, item)
 // List trim
 void *ListTrim(list)
 {
-    // set temp = tail
-    // set tail  = tail->prev
-    // tail->next = NULL
-    // temp2 = temp
-    // freeNode(temp)
-    // set current = tail
-    // size--
-    // return temp2
+    NODE *removedItem = NULL;
+    if (list->size == 0)
+    {
+        return NULL;
+    }
+
+    if ((list->size == 1))
+    {
+        removedItem = list->head;
+        list->head->next = NULL;
+        list->head->prev = NULL;
+        list->head->item = NULL;
+        list->tail = list->head;
+        list->current.pointer = list->head;
+        setCurrentItemNull(list);
+        list->size--;
+    }
+    else
+    {
+        list->current.pointer = list->tail;
+        removedItem = list->current.pointer->item;
+        list->tail = list->tail->prev;
+        list->tail->next = NULL;
+        freeNodeFromList(list->current.pointer);
+        list->current.pointer = list->tail;
+        setCurrentItemValid(list);
+        list->size--;
+    }
+
+    return removedItem;
 }
 
 // List remove
 void *ListRemove(list)
 {
-    // -> move to the next current pointer
-    // set temp = current
-    // set current = current->next
-    // -> link new item with the old one
-    // set temp->prev->next = current
-    // set current->prev = temp->prev
-    // set temp2 = temp
-    // -> turn into free node
-    // freeNodeFromList(temp);
-    // size--
-    // return temp2;
+    NODE *removedItem = NULL;
+    if ((isValid(list) == 0) || (list->size == 0))
+    {
+        return NULL;
+    }
+
+    if (list->size == 1)
+    {
+        removedItem = list->head->item;
+        list->head->next = NULL;
+        list->head->prev = NULL;
+        list->head->item = NULL;
+        list->tail = list->head;
+        list->current.pointer = list->head;
+        setCurrentItemNull(list);
+        list->size--;
+    }
+    else if (list->size == 2)
+    {
+        if (list->current.pointer == list->head)
+        {
+            removedItem = list->head->item;
+            list->current.pointer = list->tail;
+            list->head->next = NULL;
+            freeNodeFromList(list->current.pointer);
+            list->head->item = removedItem;
+            list->tail = list->head;
+            list->current.pointer = list->head;
+            setCurrentItemValid(list);
+            list->size--;
+        }
+        else if (list->current.pointer == list->tail)
+        {
+            removedItem = list->tail->item;
+            list->current.pointer = list->tail;
+            list->head->next = NULL;
+            freeNodeFromList(list->current.pointer);
+            list->tail = list->head;
+            list->current.pointer = list->head;
+            setCurrentItemValid(list);
+            list->size--;
+        }
+    }
+    else if (list->size > 2)
+    {
+        if (list->current.pointer == list->head)
+        {
+            removedItem = list->head;
+            list->current.pointer = list->head->next;
+            list->head->item = list->current.pointer->item;
+            list->head->next = list->current.pointer->next;
+            list->current.pointer->next->prev = list->head;
+            freeNodeFromList(list->current.pointer);
+            list->current.pointer = list->head;
+            setCurrentItemValid(list);
+            list->size--;
+        }
+        else if (list->current.pointer == list->tail)
+        {
+            removedItem = list->tail->item;
+            list->current.pointer = list->tail->prev;
+            list->tail->prev = list->current.pointer->prev;
+            list->current.pointer->prev->next = list->tail;
+            freeNodeFromList(list->current.pointer);
+            list->current.pointer = list->tail;
+            setCurrentItemValid(list);
+            list->size--;
+        }
+        else
+        {
+            removedItem = list->current.pointer->item;
+            NODE *beforeCurrentItem = list->current.pointer->prev;
+            NODE *afterCurrentItem = list->current.pointer->next;
+            beforeCurrentItem->next = afterCurrentItem;
+            afterCurrentItem->prev = beforeCurrentItem;
+            freeNodeFromList(list->current.pointer);
+            list->current.pointer = afterCurrentItem;
+            setCurrentItemValid(list);
+            list->size--;
+        }
+    }
+
+    return removedItem;
+}
+
+void freeItemFromList(void *value)
+{
+    value = NULL;
 }
 
 // List free
-void ListFree(list, itemFree)
+void ListFree(LIST *list, void (*itemFree)(void *itemToBeFreed))
 {
-    // set current = tail
-    // while (current != head)
-    // {Trim list}
-    // freeHeadFromList(head);
-    // list = NULL
+
+    while (list->head != list->tail)
+    {
+        list->current.pointer = list->tail;
+        list->tail = list->tail->prev;
+        list->tail->next = NULL;
+        (*itemFree)(list->current.pointer->item);
+        freeNodeFromList(list->current.pointer);
+        list->current.pointer = list->tail;
+        setCurrentItemValid(list);
+        list->size--;
+    }
+
+    freeHeadFromList(list->head);
+    list = NULL;
+
+    return;
 }
 
-void ListConcat(list1, list2)
+void ListConcat(LIST *list1, LIST *list2)
 {
-    // list1->tail->next = list2->head
-    // list2->head->prev = list1->tail
-    // list1->tail = list2->tail
-    // list1->size += list2->size
-    // ListFree(list2)
+    if (((list1->size != 0) || (list1->size != 1)) && ((list2->size != 0) || (list2->size != 1)))
+    {
+        list1->tail->next = list2->head;
+        list2->head->prev = list1->tail;
+        list1->tail = list2->tail;
+        list1->size += list2->size;
+        ListFree(list2);
+    }
+    else
+    {
+        return;
+    }
 }
 
-void *ListSearch(list, comparator, comparisionArg)
+int compare(void *value1, void *value2)
 {
-    // if (list == NULL) or (size = 0) or (comparator = 0) or (comparisionArg = NULL) or (!isValid(current))
-    // {return NULL}
-    // while (comparator(comparisionArg, current)) and current != tail
-    // if (current->prev == tail)
-    // {break
-    // set current = current->next}
-    // checkCurrentItemStatus(list)
-    // return current
+    return (value1 == value2) ? 1 : 0;
 }
+
+void *ListSearch(LIST *list, int (*comparator)(void *item1, void *item2),
+                 void *comparisonArg)
+{
+    if ((list->size == 0) || (comparator == NULL) || (comparisonArg == NULL) || (isValid(list) == 0) {
+        return NULL;
+    }
+
+    while ((*comparator)(comparisonArg, list->current.pointer->item) != 1)
+    {
+        if (list->current.pointer == list->tail)
+            break;
+        list->current.pointer = list->current.pointer->next;
+    }
+
+    return list->current.pointer->item;
+}
+
+//-----------------------------------Functionality----------------------------//
 
 void print(int x)
 {
@@ -382,6 +671,7 @@ void ad(int a, void (*itemFree)(int item))
 {
     (*itemFree)(a);
 }
+
 int main()
 {
     init();
