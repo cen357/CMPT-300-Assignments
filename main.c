@@ -5,7 +5,7 @@
 // Node element for linked list
 typedef struct Node
 {
-    int item;
+    void *item;
     struct Node *next;
     struct Node *prev;
 } NODE;
@@ -13,111 +13,742 @@ typedef struct Node
 // List abstract data structure
 typedef struct List
 {
-    int count;
+    int size;
+    struct List *link;
     NODE *head;
     NODE *tail;
-    struct Current
-    {
-        NODE *pointer;
-        _Bool isValid;
-        _Bool isBeforeFirstItem;
-        _Bool isBeyondLastItem;
-    } current;
+    NODE *current;
+    _Bool isValid;
+    _Bool isBeforeFirstItem;
+    _Bool isBeyondLastItem;
 
 } LIST;
 
 // Global arrays that store nodes and heads
 NODE nodes_array[MAX_LENGTH];
-NODE heads_array[MAX_LENGTH];
+LIST lists_array[MAX_LENGTH];
 
 // First free node or free head in the arrays
-static NODE *freeListNode;
-static NODE *freeListHead;
+static NODE *freeNode;
+static LIST *freeList;
+
+// ---------------------------------------Memory Allocation--------------------------------//
+// Init two free memory stacks for data storage
+// Initially both stacks contain full free nodes and list
+// free list or free node traversal reduce the stack until empty (either of them equals to NULL)
+void init()
+{
+    nodes_array[MAX_LENGTH - 1].next = NULL;
+    lists_array[MAX_LENGTH - 1].link = NULL;
+    nodes_array[0].prev = NULL;
+
+    for (int i = 0; i < MAX_LENGTH - 1; i++)
+    {
+        nodes_array[i].next = &nodes_array[i + 1];
+        lists_array[i].link = &lists_array[i + 1];
+        nodes_array[i + 1].prev = NULL;
+    }
+
+    // Set free node and free list at the beginning of the array
+    freeNode = &nodes_array[0];
+    freeList = &lists_array[0];
+}
+
+void resetList(LIST *list)
+{
+    list->size = 0;
+    list->head = NULL;
+    list->tail = NULL;
+    list->current = NULL;
+    list->isValid = 0;
+    list->isBeforeFirstItem = 0;
+    list->isBeyondLastItem = 0;
+}
+
+void resetNode(NODE *node)
+{
+    node->item = NULL;
+}
+
+// Find new list head
+LIST *findNewList()
+{
+    LIST *newList = freeList;
+    // Case: List array exhausted
+    if (freeList == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        resetList(newList);
+        // Move to the next free list in the array
+        freeList = freeList->link;
+        newList->link = NULL;
+    }
+
+    return newList;
+}
+
+// Find new list Node
+NODE *findNewNode()
+{
+    NODE *newNode = freeNode;
+    // Case: Node array exhausted
+    if (freeNode == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        // Move to the next free node in the array
+        freeNode = freeNode->next;
+        resetNode(newNode);
+    }
+
+    return newNode;
+}
+
+void freeNodeFromArray(NODE *node)
+{
+    if (node == freeNode)
+    {
+        freeNode = freeNode->next;
+        resetNode(node);
+        node->next = freeNode;
+        freeNode = node;
+    }
+    // Case node array is exhausted
+    if (freeNode == NULL)
+    {
+        resetNode(node);
+        // new first free node
+        freeNode = node;
+        freeNode->next = NULL;
+    }
+    else
+    {
+        resetNode(node);
+        // add new free node to the free node stack
+        node->next = freeNode;
+        freeNode = node;
+    }
+}
+
+void freeListFromArray(LIST *list)
+{
+
+    if (list->head == list->tail)
+    {
+        freeList = freeList->link;
+        resetList(list);
+        list->link = freeList;
+        freeList = list;
+    }
+
+    if (freeList == NULL)
+    {
+        resetList(list);
+        freeList = list;
+        freeList->link = NULL;
+    }
+    else
+    {
+        resetList(list);
+        list->link = freeList;
+        freeList = list;
+    }
+}
+//------------------------------End of Memory Allocation-------------------------//
+
+// ------------------------------Current Pointer---------------------------------//
+_Bool isNull(LIST *list)
+{
+    return (((list->isBeforeFirstItem == 0) && (list->isBeyondLastItem == 0) && (list->isValid == 0)) || (list->size == 0)) ? 1 : 0;
+}
+
+_Bool isValid(LIST *list)
+{
+    return ((list->isBeforeFirstItem == 0) && (list->isBeyondLastItem == 0) && (list->isValid == 1) && (list->size != 0)) ? 1 : 0;
+}
+
+_Bool isBeforeFirstItem(LIST *list)
+{
+    return ((list->isBeforeFirstItem == 1) && (list->isBeyondLastItem == 0) && (list->isValid == 0) && (list->size != 0)) ? 1 : 0;
+}
+
+_Bool isBeyondLastItem(LIST *list)
+{
+    return ((list->isBeforeFirstItem == 0) && (list->isBeyondLastItem == 1) && (list->isValid == 0) && (list->size != 0)) ? 1 : 0;
+}
+
+void setCurrentItemNull(LIST *list)
+{
+    list->isValid = 0;
+    list->isBeforeFirstItem = 0;
+    list->isBeyondLastItem = 0;
+}
+
+void setCurrentItemValid(LIST *list)
+{
+    list->isValid = 1;
+    list->isBeforeFirstItem = 0;
+    list->isBeyondLastItem = 0;
+}
+
+void setCurrentItemBeforeHead(LIST *list)
+{
+    list->isValid = 0;
+    list->isBeforeFirstItem = 1;
+    list->isBeyondLastItem = 0;
+}
+
+void setCurrentItemBeyondTail(LIST *list)
+{
+    list->isValid = 0;
+    list->isBeforeFirstItem = 0;
+    list->isBeyondLastItem = 1;
+}
+
+void updateCurrentItemStatus(LIST *list)
+{
+    if (list->current != NULL)
+    {
+        setCurrentItemValid(list);
+    }
+    else if (list->head->prev == list->current)
+    {
+        setCurrentItemBeforeHead(list);
+    }
+    else if (list->tail->next == list->current)
+    {
+        setCurrentItemBeyondTail(list);
+    }
+    else
+    {
+        setCurrentItemNull(list);
+    }
+}
+
+// ----------------------------End of Current Pointer---------------------//
+
+// -------------------------Functionality--------------------------------//
+// List create
+LIST *ListCreate()
+{
+    LIST *newList = findNewList();
+
+    if (newList == NULL)
+    {
+        return NULL;
+    }
+
+    return newList;
+}
+
+// List count
+int ListCount(LIST *list)
+{
+    return list->size;
+}
+
+// List first
+void *ListFirst(LIST *list)
+{
+    if ((list == NULL) || (list->size == 0))
+    {
+        return NULL;
+    }
+    else
+    {
+        list->current = list->head;
+        setCurrentItemValid(list);
+    }
+
+    return list->head->item;
+}
+
+void *ListLast(LIST *list)
+{
+    if ((list == NULL) || (list->size == 0))
+    {
+        return NULL;
+    }
+    else
+    {
+        list->current = list->tail;
+        setCurrentItemValid(list);
+    }
+
+    return list->tail->item;
+}
+
+void *ListNext(LIST *list)
+{
+    if ((list == NULL) || (list->size == 0) || (list->current == NULL))
+    {
+        return NULL;
+    }
+    else if (list->current->next == NULL)
+    {
+        setCurrentItemBeyondTail(list);
+    }
+    else
+    {
+        list->current = list->current->next;
+        updateCurrentItemStatus(list);
+    }
+
+    return list->current->item;
+}
+
+void *ListPrev(LIST *list)
+{
+    if ((list == NULL) || (list->size == 0) || (list->current == NULL))
+    {
+        return NULL;
+    }
+    else if ((list->current->prev == NULL))
+    {
+        setCurrentItemBeforeHead(list);
+    }
+    else
+    {
+        list->current = list->current->prev;
+        updateCurrentItemStatus(list);
+    }
+    return list->current->item;
+}
+
+void *ListCurr(LIST *list)
+{
+    if ((list == NULL) || (list->size == 0) || (list->current == NULL) || (isValid(list) == 0))
+        return NULL;
+
+    return list->current->item;
+}
+
+// List add
+int ListAdd(LIST *list, void *value)
+{
+    if ((list == NULL) || (freeNode == NULL))
+    {
+        return -1;
+    }
+
+    if (list->size == 0)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->head = newListNode;
+        list->tail = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if (list->head == list->tail)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->tail = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if ((isBeforeFirstItem(list) == 1) || (list->current == list->head))
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        newListNode->next = list->head->next;
+        list->head->next->prev = newListNode;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if ((isBeyondLastItem(list) == 1) || (list->current == list->tail))
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        newListNode->next = NULL;
+        newListNode->prev = list->tail;
+        list->tail->next = newListNode;
+        list->tail = newListNode;
+        list->current = list->tail;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if (isValid(list) == 1)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        newListNode->next = list->current->next;
+        list->current->next->prev = newListNode;
+        list->current->next = newListNode;
+        newListNode->prev = list->current;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+
+    return 0;
+}
+
+// List insert
+int ListInsert(LIST *list, void *value)
+{
+    if ((list == NULL) || (freeNode == NULL))
+    {
+        return -1;
+    }
+
+    if (list->size == 0)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->head = newListNode;
+        list->tail = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if (list->head == list->tail)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = list->head->item;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->head->item = value;
+        list->tail = newListNode;
+        list->current = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if ((isBeforeFirstItem(list) == 1) || (list->current == list->head))
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        newListNode->next = list->head;
+        list->head->prev = newListNode;
+        list->head = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if ((isBeyondLastItem(list) == 1) || (list->current == list->tail))
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->tail->prev->next = newListNode;
+        newListNode->prev = list->tail->prev;
+        newListNode->next = list->tail;
+        list->tail->prev = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if (isValid(list) == 1)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->current->prev->next = newListNode;
+        newListNode->prev = list->current->prev;
+        newListNode->next = list->current;
+        list->current->prev = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+
+    return 0;
+}
+
+//List Append
+int ListAppend(LIST *list, void *value)
+{
+    if ((list == NULL) || (freeNode == NULL))
+    {
+        return -1;
+    }
+
+    if (list->size == 0)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->head = newListNode;
+        list->tail = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if (list->head == list->tail)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->tail = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        newListNode->next = NULL;
+        newListNode->prev = list->tail;
+        list->tail->next = newListNode;
+        list->tail = newListNode;
+        list->current = list->tail;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+
+    return 0;
+}
+
+// List Prepend
+int ListPrepend(LIST *list, void *value)
+{
+    if ((list == NULL) || (freeNode == NULL))
+    {
+        return -1;
+    }
+
+    if (list->size == 0)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        list->head = newListNode;
+        list->tail = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else if (list->head == list->tail)
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = list->head->item;
+        list->head->next = newListNode;
+        newListNode->prev = list->head;
+        list->head->item = value;
+        list->tail = newListNode;
+        list->current = list->head;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+    else
+    {
+        NODE *newListNode = findNewNode(list);
+        newListNode->item = value;
+        newListNode->next = list->head;
+        list->head->prev = newListNode;
+        list->head = newListNode;
+        list->current = newListNode;
+        setCurrentItemValid(list);
+        list->size++;
+        return 0;
+    }
+
+    return 0;
+}
+
+// List trim
+void *ListTrim(LIST *list)
+{
+    NODE *removedItem;
+    if ((list == NULL) || (list->size == 0))
+    {
+        return NULL;
+    }
+
+    if ((list->head == list->tail))
+    {
+        removedItem = list->head->item;
+        freeNodeFromArray(list->head);
+        freeListFromArray(list);
+    }
+    else
+    {
+        list->current = list->tail;
+        removedItem = list->current->item;
+        list->tail = list->tail->prev;
+        list->tail->next = NULL;
+        freeNodeFromArray(list->current);
+        list->current = list->tail;
+        setCurrentItemValid(list);
+        list->size--;
+    }
+
+    return removedItem;
+}
+
+void freeItemFromList(void *value)
+{
+    value = NULL;
+}
+
+// List free
+void ListFree(LIST *list, void (*itemFree)(void *itemToBeFreed))
+{
+    if ((list == NULL) || (list->size == 0))
+    {
+        return;
+    }
+
+    if ((list->head == list->tail))
+    {
+        freeNodeFromArray(list->head);
+        freeListFromArray(list);
+    }
+    else
+    {
+        while (list->head != list->tail)
+        {
+            NODE *temp = list->tail;
+            list->tail = list->tail->prev;
+            list->tail->next = NULL;
+            (*itemFree)(temp->item);
+            freeNodeFromArray(list->current);
+            list->current = list->tail;
+            setCurrentItemValid(list);
+            list->size--;
+        }
+
+        freeListFromArray(list);
+    }
+}
+
+void ListConcat(LIST *list1, LIST *list2)
+{
+    if ((list1 != NULL) && (list2 != NULL))
+    {
+        list1->tail->next = list2->head;
+        list2->head->prev = list1->tail;
+        list1->tail = list2->tail;
+        list1->size += list2->size;
+        list2->current = list1->current;
+        freeListFromArray(list2);
+    }
+    else
+    {
+        return;
+    }
+}
+
+int compare(void *value1, void *value2)
+{
+    return (value1 == value2) ? 1 : 0;
+}
+
+void *ListSearch(LIST *list, int (*comparator)(void *item1, void *item2), void *comparisonArg)
+{
+    if ((list == NULL) || (list->size == 0) || (comparator == NULL) || (comparisonArg == NULL) || (isValid(list) == 0))
+    {
+        return NULL;
+    }
+
+    while (list->current != list->tail)
+    {
+        if ((*comparator)(comparisonArg, list->current->item) == 1)
+        {
+            return list->current->item;
+        }
+        list->current = list->current->next;
+    }
+
+    list->current = list->current->next;
+    setCurrentItemBeyondTail(list);
+
+    return NULL;
+}
+
+//---------------------------------------------------------------------------//
 
 int main()
 {
-    // ------------------------Main Init------------------------------------
+    init();
+    LIST *test = ListCreate();
+    LIST *test2 = ListCreate();
     int a = 1;
-    int b = 1;
-    LIST test;
-
-    // Array init
-    nodes_array[MAX_LENGTH - 1].next = NULL;
-    heads_array[MAX_LENGTH - 1].next = NULL;
-    nodes_array[0].prev = NULL;
-    heads_array[0].prev = NULL;
-
-    for (int i = 0; i < MAX_LENGTH - 2; i++)
-    {
-        nodes_array[i].next = &nodes_array[i + 1];
-        heads_array[i].next = &heads_array[i + 1];
-        nodes_array[i + 1].prev = &nodes_array[i];
-        heads_array[i + 1].prev = &heads_array[i];
-    }
-
-    freeListNode = &nodes_array[0];
-    freeListHead = &heads_array[0];
-    // --------------------End of Main init -----------------------------------
-
-    // --------------------------------Helper Functions ----------------------------
-    // Find new head
-    NODE *newListHead = freeListHead;
-    freeListHead = freeListHead->next;
-    freeListHead->item = 2;
-
-    // Find new Node
-    NODE *newListNode = freeListNode;
-    freeListNode = freeListNode->next;
-    freeListHead->item = 2;
-
-    // ---------------------------End of Helper functions --------------------------
-
-    // --------------------------------Main functions------------------------------
-    // New list init
-    test.count = 0;
-    test.head = newListHead;
-    test.head->item = 0;
-    test.head->next = newListNode;
-    test.head->prev = NULL;
-    test.tail = test.head;
-    test.current.pointer = test.head;
-
-    if (test.current.pointer != NULL)
-    {
-        test.current.isValid = 1;
-        test.current.isBeforeFirstItem = 0;
-        test.current.isBeyondLastItem = 0;
-    }
-    else if (test.current.pointer->next == test.head)
-    {
-        test.current.isValid = 0;
-        test.current.isBeforeFirstItem = 1;
-        test.current.isBeyondLastItem = 0;
-    }
-    else if (test.current.pointer->prev == test.tail)
-    {
-        test.current.isValid = 0;
-        test.current.isBeforeFirstItem = 0;
-        test.current.isBeyondLastItem = 1;
-    }
-    //---------------------------------End of functions-----------------------------
+    float b = 2.0;
+    double c = 3.5;
+    long d = 3;
+    int e = 32;
 
     // Test driver
-    printf("List count: %d\n", test.count);
-    printf("Head address: %p\n", test.head);
-    printf("Head item: %d\n", test.head->item);
-    printf("Head next: %p\n", test.head->next);
-    printf("Head prev: %p\n", test.head->prev);
-    printf("Tail address: %p\n", test.tail);
-    printf("Tail item: %d\n", test.tail->item);
-    printf("Tail next: %p\n", test.tail->next);
-    printf("Tail prev: %p\n", test.tail->prev);
-    printf("Current pointer address: %p\n", test.current.pointer);
-    printf("Current is valid: %d\n", test.current.isValid);
-    printf("Current is is before: %d\n", test.current.isBeforeFirstItem);
-    printf("Current is beyond: %d\n", test.current.isBeyondLastItem);
-    printf("Current item: %d\n", test.current.pointer->item);
-    printf("Current next: %p\n", test.current.pointer->next);
-    printf("Current prev: %p\n", test.current.pointer->prev);
+    printf("List current test 1: %p\n", test);
+    printf("list array[0]: %p\n", &lists_array[0]);
+    printf("List array[1]: %p\n", &lists_array[1]);
+    printf("List array[2]: %p\n", &lists_array[2]);
+    printf("List array[3]: %p\n", &lists_array[3]);
+    printf("List array[4]: %p\n\n", &lists_array[4]);
+
+    printf("Node array[0]: %p\n", &nodes_array[0]);
+    printf("Node array[1]: %p\n", &nodes_array[1]);
+    printf("Node array[2]: %p\n", &nodes_array[2]);
+    printf("Node array[3]: %p\n", &nodes_array[3]);
+    printf("Node array[4]: %p\n\n", &nodes_array[4]);
+
+    printf("a: %p\n", &a);
+    printf("b: %p\n", &b);
+    printf("c: %p\n", &c);
+    printf("d: %p\n", &d);
+    printf("e: %p\n\n", &e);
+
+    ListAppend(test, &a);
+    ListAppend(test, &b);
+    ListAppend(test, &c);
+    printf("test 1: %p\n", ListFirst(test));
+    printf("test 1: %p\n", ListNext(test));
+    printf("test 1: %p\n\n", ListNext(test));
+
+    ListAppend(test2, &d);
+    ListAppend(test2, &e);
+    printf("test 2: %p\n", ListFirst(test2));
+    printf("test 2: %p\n\n", ListNext(test2));
+
+    ListFree(test2, freeItemFromList);
+    printf("test 2: %p\n", ListFirst(test2));
+    printf("test 2: %p\n\n", ListNext(test2));
+
+    LIST *test3 = ListCreate();
+    ListAppend(test3, &d);
+    ListAppend(test3, &e);
+    printf("test 3: %p\n", ListFirst(test3));
+    printf("test 3: %p\n\n", ListNext(test3));
+
+    ListConcat(test, test3);
+    printf("test 1: %p\n", ListFirst(test));
+    printf("test 1: %p\n", ListNext(test));
+    printf("test 1: %p\n", ListNext(test));
+    printf("test 1: %p\n", ListNext(test));
+    printf("test 1: %p\n\n", ListNext(test));
+
+    printf("test 2: %p\n", ListFirst(test2));
+    printf("test 2: %p\n\n", ListNext(test2));
+
+    printf("test 1: %p\n", ListFirst(test));
+    printf("Search test: %p\n\n", ListSearch(test, compare, &b));
+
     return 0;
 }
