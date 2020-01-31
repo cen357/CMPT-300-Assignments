@@ -32,7 +32,7 @@ LIST lists_array[MAX_LENGTH];
 static NODE *freeNode;
 static LIST *freeList;
 
-// ---------------------------------------Memory Allocation--------------------------------//
+// ---------------------------------------Memory Pool Allocation--------------------------------//
 // Init two free memory stacks for data storage
 // Initially both stacks contain full free nodes and list
 // free list or free node traversal reduce the stack until empty (either of them equals to NULL)
@@ -159,7 +159,7 @@ void freeListFromArray(LIST *list)
         freeList = list;
     }
 }
-//------------------------------End of Memory Allocation-------------------------//
+//------------------------------End of Memory Pool Allocation-------------------------//
 
 // ------------------------------Current Pointer---------------------------------//
 _Bool isNull(LIST *list)
@@ -682,20 +682,23 @@ void *ListSearch(LIST *list, int (*comparator)(void *item1, void *item2), void *
     return NULL;
 }
 
-//---------------------------------------------------------------------------//
-
+// Test program
 int main()
 {
+    // Initiate memory pool
     init();
+    // Create list
     LIST *test = ListCreate();
+    // Create list
     LIST *test2 = ListCreate();
+    // Data variables
     int a = 1;
     float b = 2.0;
     double c = 3.5;
     long d = 3;
     int e = 32;
 
-    // Test driver
+    // View memory of free lists
     printf("List current test 1: %p\n", test);
     printf("list array[0]: %p\n", &lists_array[0]);
     printf("List array[1]: %p\n", &lists_array[1]);
@@ -703,18 +706,21 @@ int main()
     printf("List array[3]: %p\n", &lists_array[3]);
     printf("List array[4]: %p\n\n", &lists_array[4]);
 
+    // View memory of free nodes
     printf("Node array[0]: %p\n", &nodes_array[0]);
     printf("Node array[1]: %p\n", &nodes_array[1]);
     printf("Node array[2]: %p\n", &nodes_array[2]);
     printf("Node array[3]: %p\n", &nodes_array[3]);
     printf("Node array[4]: %p\n\n", &nodes_array[4]);
 
+    // Data references
     printf("a: %p\n", &a);
     printf("b: %p\n", &b);
     printf("c: %p\n", &c);
     printf("d: %p\n", &d);
     printf("e: %p\n\n", &e);
 
+    // Push 3 items into test list
     ListAppend(test, &a);
     ListAppend(test, &b);
     ListAppend(test, &c);
@@ -722,21 +728,25 @@ int main()
     printf("test 1: %p\n", ListNext(test));
     printf("test 1: %p\n\n", ListNext(test));
 
+    // Push 2 items into test2 list
     ListAppend(test2, &d);
     ListAppend(test2, &e);
     printf("test 2: %p\n", ListFirst(test2));
     printf("test 2: %p\n\n", ListNext(test2));
 
+    // Delete test2 list
     ListFree(test2, freeItemFromList);
     printf("test 2: %p\n", ListFirst(test2));
     printf("test 2: %p\n\n", ListNext(test2));
 
+    // Create new test3 list
     LIST *test3 = ListCreate();
     ListAppend(test3, &d);
     ListAppend(test3, &e);
     printf("test 3: %p\n", ListFirst(test3));
     printf("test 3: %p\n\n", ListNext(test3));
 
+    // Merge test3 into test 1 and delete test3
     ListConcat(test, test3);
     printf("test 1: %p\n", ListFirst(test));
     printf("test 1: %p\n", ListNext(test));
@@ -747,6 +757,7 @@ int main()
     printf("test 2: %p\n", ListFirst(test2));
     printf("test 2: %p\n\n", ListNext(test2));
 
+    // Search list testing
     printf("test 1: %p\n", ListFirst(test));
     printf("Search test: %p\n\n", ListSearch(test, compare, &b));
 
